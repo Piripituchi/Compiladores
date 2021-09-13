@@ -13,9 +13,9 @@ class Afd:
     def transicion(self,estado,caracter):
         if caracter not in self.Sigma:
             pass
-        if (estado,caracter) not in self.delta.keys():
-            return '',False
         estado_sig=self.delta[(estado,caracter)]
+        if estado_sig == '\u03F4':
+            return estado_sig,False
         return estado_sig,True
 
 def leerAfd(archivo):
