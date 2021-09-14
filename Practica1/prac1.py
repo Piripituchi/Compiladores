@@ -1,6 +1,7 @@
 
 
 import re
+import sys
 from itertools import chain,combinations
 
 def conjunto_potencia(Estados):
@@ -49,7 +50,7 @@ class Automata:
         if (estado,caracter) not in self.dp.keys():
             return '\u03F4',False
         estado_sig=self.dp[(estado,caracter)]
-        print("Transicion (", estado,",",caracter,")  ->", estado_sig)
+        print("  Transicion (", estado,",",caracter,")  ->", estado_sig)
         return estado_sig,True
 
     def validarCadena(self,cadena):
@@ -90,11 +91,19 @@ def leerAfd(archivo):
 
 
 if __name__ == "__main__":
-    f=open('/home/eduardo/Documentos/Compiladores/Practica1/prueba.txt','r')
-    Estados,Sigma,Inicial,Finales,delta=leerAfd(f)
-    automata=Automata(Estados,Sigma,Inicial,Finales,delta)
-    v1=automata.validarCadena('aabababaaaafaaagsaa@ba')
-    print(v1)
-    print(automata.Fp)
-    print(automata.dp)
-    f.close()
+    if len(sys.argv)==2 and sys.argv[1].endswith('.txt'):
+        f=open(sys.argv[1],'r')
+        Estados,Sigma,Inicial,Finales,delta=leerAfd(f)
+        f.close()
+        automata=Automata(Estados,Sigma,Inicial,Finales,delta)
+        try:
+            while True:
+                cadena=input('Ingrese cadena a evaluar por el automata: ')
+                valido=automata.validarCadena(cadena)
+                print(valido)
+                print("\n Presione ^C para terminar")
+        except:
+            print("\nFin del programa")
+    else:
+        print("Error: Entrada incorrecta ")
+        print("Ejemplo: $ python prac1.py prueba.txt")
