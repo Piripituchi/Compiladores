@@ -31,12 +31,36 @@ class Automata:
         #print("  Transicion (", estado,",",caracter,")  ->  ", estados_sig)
         return estados_sig,True
 
+    def transicionesEpsilon(self,estado_actual):
+        aux=False
+        temp=estado_actual
+        #print(estado_actual)
+        for q in estado_actual:
+            if (q,'E') in self.delta.keys():
+                temp = list(set().union(temp, self.delta[(q,'E')]))
+                #print(temp)
+                aux=True
+        
+        if temp==estado_actual:
+            return temp
+        else:
+            return self.transicionesEpsilon(temp)
+        
+        
+
     def validarCadena(self,cadena):
         estado_act=list(self.inicial)
         errores=[]
         temp=[]
         FLAG=True
         for c in cadena:
+            temp=estado_act
+            # print(estado_act)
+            # for q in estado_act:
+            #     if (q,'E') in self.delta.keys():
+            #         temp = list(set().union(temp, self.delta[(q,'E')]))
+            estado_act=self.transicionesEpsilon(temp)
+            # print(estado_act)
             temp=[]
             for q in estado_act:
                 if q=='\u03F4':
@@ -55,17 +79,17 @@ class Automata:
             
 
 def leerAfd(archivo):
-    estados=list(''.join(re.split(',|\n',archivo.readline())))
+    estados=re.split(',|\n',archivo.readline())
     sigma=list(''.join(re.split(',|\n',archivo.readline())))
     inicial=''.join(archivo.readline().splitlines())
-    finales=list(''.join(re.split(',|\n',archivo.readline())))
+    finales=re.split(',|\n',archivo.readline())
     transiciones=re.split(',|\n',archivo.read())
     dic_transiciones={}
     for i in range(0,len(transiciones),3):
         if(transiciones[i],transiciones[i+1]) in dic_transiciones.keys():
             dic_transiciones.setdefault((transiciones[i],transiciones[i+1]),dic_transiciones[(transiciones[i],transiciones[i+1])].append(transiciones[i+2]))
         else:
-            dic_transiciones.setdefault((transiciones[i],transiciones[i+1]),list(transiciones[i+2]))
+            dic_transiciones.setdefault((transiciones[i],transiciones[i+1]),[transiciones[i+2]])
     return estados,sigma,inicial,finales,dic_transiciones
 
 
