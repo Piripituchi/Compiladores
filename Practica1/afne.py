@@ -75,6 +75,10 @@ class Automata: #Clase Automata
             transiciones.append(estado_act) # Agregamos a las transiciones posibles la lista de estados origen
             transiciones.append(temp) # Agregamos a las transiciones posibles la lista de estados destino
             estado_act=temp # Pasamos a la lista de estados destino obtenidos a los estados actuales
+        if len((set(estado_act) & set(self.Finales))) == 0: #Si ninguna de las ultimas transiciones esta en la lista de estados finales, buscamos si hay transiciones E
+            temp=transiciones.pop() #Sacamos las ultimas transiciones de la lista
+            estado_act=self.transicionesEpsilon(temp) #Buscamos si hay transiciones E
+            transiciones.append(estado_act) #Agregamos la nueva ultima lista de transiciones
         if len((set(estado_act) & set(self.Finales))) > 0: # Si la interseccion entre la ultima lista de estados y el conjunto de estados finales es < 0, existe uno o mas caminos posibles
             if errores: # Si se detecta que existieron errores.
                 print("\n"+self.inicial+" - (E) -> "+"[ "+",".join(transiciones[0])+" ]") #Imprime el estado inicial y sus transiciones posibles con E
@@ -138,4 +142,4 @@ if __name__ == "__main__":
             print("\nFin del programa")
     else: #Si la entrada no contiene 2 argumentos y el segundo no es un archivo .txt, no puede ejecutarse el programa e imprime un mensaje de error
         print("Error: Entrada incorrecta ")
-        print("Ejemplo de entrada correcta: $ python prac1.py prueba.txt") # ejemplo de entrada correxta
+        print("Ejemplo de entrada correcta: $ python afne.py automata.txt") # ejemplo de entrada correcta
