@@ -11,13 +11,13 @@ Descripcion: Este codigo carga desde un archivo un AFN-E y lo convierte en un AF
 '''
 __author__ = "Jesus Eduardo Angeles Hernandez"
 __email__ = "jeduardohdez98@gmail.com"
-__status__= "Pruebas"
+__status__= "Terminado"
 
 #-----------------------------LIBRERIAS NECESARIAS----------------------------------
 
 import re #Usaremos los metodos de esta libreria para poder manejar la informacion de los achivos de texto que se proporcionen
 import sys #Usaremos esta libreria para leer los argumentos de la entrada al correr el programa
-import pprint
+import pprint #Usaremos esta libreria para imprimir con un formato mas entendible los diccionarios que forman la tabla de transicion.
 
 #-----------------------------CLASES----------------------------------
 
@@ -33,11 +33,11 @@ class Automata: #Clase Automata
     def transicion(self,estado,caracter): # Toma un estado y un caracter de la entrada y regresa el estado o estados posibles
         if caracter not in self.Sigma:
             return estado,False # Si el caracter no esta en el alfabeto, no hace ninguna transicion y regresa una bandera de False
-        if (estado,caracter) in self.delta.keys():
+        if (estado,caracter) in self.delta.keys(): #Revisa si existe una transicion con el estado y simbolo en el diccionario de transiciones 
             estados_sig=self.delta[(estado,caracter)] # Consulta en la tabla de transiciones
             return estados_sig,True # Regresa el o los estados siguiente y una bandera de True
 
-        return estado,False # Regresa el o los estados siguiente y una bandera de True
+        return estado,False # Regresa el estado ingresado sin cambios y una bandera de False ya que no se encontro transicion
 
     def cerradura_Epsilon(self,estado_actual): # Toma una lista de estados y regresa una lista con los estados y todos los estados a los que se podra llegar con E (Cerradura Epsilon)
         temp=estado_actual
@@ -49,56 +49,54 @@ class Automata: #Clase Automata
         else: # Si las listas son diferentes significa que se encontraron y agregaron transiciones
             return self.cerradura_Epsilon(temp) # Lanazamos el metodo nuevamente para buscar transiciones sobre la nueva lista de estados
     
-    def mover_A(self,estadoactual,sigma):
-        temp=[]
-        for q in estadoactual:
-            estadosig,FLAG=self.transicion(q,sigma)
-            if not FLAG:
-                continue
-            temp.extend(estadosig)
-        return set(temp)
+    def mover_A(self,estadoactual,sigma): # Toma una lista de estados y devuelve un conjunto de estados alcanzables desde ese estado con un simbolo dado
+        temp=[] # lista de estados alcanzables
+        for q in estadoactual: # Iteramos la lista dada
+            estadosig,FLAG=self.transicion(q,sigma) # Obtenemos la transicion para el elemento q de la lista
+            if not FLAG: #Si la bandera obtenida de la transicion es falsa
+                continue # No agrega ningun estado a la lista de estados alcanzables
+            temp.extend(estadosig) #Agrega el estado alcanzado con q y sigma a la lista de estados alcanzables
+        return set(temp) #devuelve el conjunto obtenido de estados alcanzables
 
-    def ir_A(self,estadoactual,sigma):
-        return self.cerradura_Epsilon(self.mover_A(estadoactual,sigma))
+    def ir_A(self,estadoactual,sigma): # Toma un conjunto de estados y devuelve un conjunto de los estados hacia los cuales existe transicion con un simobolo
+        return self.cerradura_Epsilon(self.mover_A(estadoactual,sigma)) # Devuelve el conjunto resultado de aplicar los metodos Mover_A y cerradura_E en ese orden
 
-    def construccion_Subconjuntos(self):
-        inicial_afd=self.cerradura_Epsilon(set(self.inicial))
-        estados_afd=[]
-        finales_afd=[]
-        transiciones_afd={}
-        new_nombres={}
-        letra=0
-        estados_afd.append(inicial_afd)
-        new_nombres.setdefault(chr(65),inicial_afd)
-        for q in estados_afd:
-            for s in self.Sigma:
-                new_estado=self.ir_A(q,s)
-                if new_estado not in estados_afd:
-                    estados_afd.append(new_estado)
-                if new_estado == set():
+    def construccion_Subconjuntos(self): #Convierte el automata AFN-E definido en los atributos del objeto en un automata AFD
+        inicial_afd=self.cerradura_Epsilon(set(self.inicial)) #Crea el primer estado a partir del estado inicial del automata
+        estados_afd=[] #Lista que utilizaremos para guardar los estados nuevos encontrados e iterarlos
+        finales_afd=[] #Lista que utilizaremos para guardar los estados finales del AFD
+        transiciones_afd={} # Diccionario que utilizaremos para guardar la tabla de transicion obtenida
+        new_nombres={} # Diccionario con el que reenombraremos los nuevos estados
+        letra=0 #Inidice para renombrar nuevos estados usando letras del abcdario en mayuscula
+        estados_afd.append(inicial_afd) #Agregamos el estado obtenido a la lista de estados a iterar
+        new_nombres.setdefault(chr(65),inicial_afd) #Agregamos al diccionario el nuevo nombre del estado, convirtiendo el decimal 65 a ascci A y el estado al que corresponde
+        for q in estados_afd: #iteramons la lista de estados obtenidos
+            for s in self.Sigma: #iteramos los simbolos del alfabeto
+                new_estado=self.ir_A(q,s) # Aplicamos la funcion ir_A sobre el estado q con el simbolo s
+                if new_estado == set(): # Si el nuevo estado, es un conjunto vacio, lo descartamos
                     continue
-                if new_estado not in new_nombres.values():
-                    letra=letra+1
-                    new_nombres.setdefault(chr(65+letra),new_estado)
-                #print(get_key(q,new_nombres)+" , "+s+" -> "+get_key(new_estado,new_nombres))
-                transiciones_afd.setdefault((get_key(q,new_nombres),s),get_key(new_estado,new_nombres))
-        for f in self.Finales:
-            for e in new_nombres.values():
-                if f in e:
-                    finales_afd.append(get_key(e,new_nombres))
-                    continue
-        self.Estados=list(new_nombres.keys())
-        self.inicial=get_key(inicial_afd,new_nombres) # Estado inicial
-        self.Finales=list(finales_afd) # Conjunto de estados finales/de aceptacion
-        self.delta=transiciones_afd
+                if new_estado not in estados_afd: # Si el estado obtenido de ir_A no esta en la lista de estados encontrados
+                    estados_afd.append(new_estado) #Lo agregamos a la lista de estados encontrados
+                    letra=letra+1 # Aumentamos el indice del nombre de los nuevos estados
+                    new_nombres.setdefault(chr(65+letra),new_estado) #Agregamos al diccionario el nuevo nombre del estado y el estado al que corresponde
+                transiciones_afd.setdefault((get_key(q,new_nombres),s),get_key(new_estado,new_nombres)) #Agregamos a la tabla de transicion, el estado actual renombrado, el simbolo y el estado alcanzado renombrado
+        for f in self.Finales: #iteramos la lista de estados finales del automata AFN-E
+            for e in new_nombres.values(): #Iteramos la lista de estados nuevos obtenidos
+                if f in e: #Si el estado f de la lista de estados finales es un elemento del estado e
+                    finales_afd.append(get_key(e,new_nombres)) #Agregamos el estado renombrado a la lista de nuevos estados finales
+                    continue # Si un estado al menos un estado de f esta en el nuevo estado e, el estado forma parte de los nuevos estados finales y no hace falta comprobar con los demas estados finales
+        self.Estados=list(new_nombres.keys()) #modificamos los estados del automata por los nuevos obtenidos
+        self.inicial=get_key(inicial_afd,new_nombres) # Modificamos el estado inicial del automata por el nuevo obtenido
+        self.Finales=list(finales_afd) # Modificamos los estados finales del automata por los obtenidos
+        self.delta=transiciones_afd #Modificamos la tabla de transiciones del automata por la nueva obtenida
     
-    def print_Automata(self):
-        print("Estados: "+' , '.join(self.Estados))
-        print("Alfabeto: "+' , '.join(self.Sigma))
-        print("Inicial: "+self.inicial)
-        print("Finales: "+' , '.join(self.Finales))
-        print("Tabla de transicion:")
-        pprint.pprint(self.delta)
+    def print_Automata(self): #Imprimimos la 5-tupla del automata
+        print("Estados: "+' , '.join(self.Estados)) #imprime la lista de estados
+        print("Alfabeto: "+' , '.join(self.Sigma)) #imprime el alfabeto del automata
+        print("Inicial: "+self.inicial) #imprime el estado inicial del automata
+        print("Finales: "+' , '.join(self.Finales)) #imprime la lista de estados finales del automata
+        print("Tabla de transicion:") 
+        pprint.pprint(self.delta) #imprime la tabla de transicion del automata
 
 
 #-----------------------------METODOS----------------------------------
@@ -117,10 +115,11 @@ def leerAutomata(archivo): # lee un archivo txt y toma el automata que viene des
             dic_transiciones.setdefault((transiciones[i],transiciones[i+1]),{transiciones[i+2]})
     return estados,sigma,inicial,finales,dic_transiciones #regresa conjunto de estados, alfabeto, estado inicial, conjunto de estados finales, tabla de transiciones
 
-def get_key(val,dic):
-    for key, value in dic.items():
-        if val == value:
-            return key
+def get_key(val,dic): # dado un valor y un diccionario obtiene la llave del valor en el diccionario
+    for key, value in dic.items(): #itera el diccionario
+        if val == value: #si el valor ingresado es igual con el valor del diccionario
+            return key  #devuelve la llave de ese valor
+
 #-----------------------------MAIN----------------------------------
 
 if __name__ == "__main__":
@@ -130,16 +129,10 @@ if __name__ == "__main__":
         f.close() # Cierra el archivo
         automata=Automata(Estados,Sigma,Inicial,Finales,delta) #Construye el automata con los valores proporcionados
         print("\n\t Automata Leido:\n")
-        automata.print_Automata()
-        automata.construccion_Subconjuntos()
+        automata.print_Automata() #imprime la 5-tupla del AFN-E leido del archivo pasado como argumento con el que fue creado el objeto automata
+        automata.construccion_Subconjuntos() #Convertimos el AFN-E en un AFD
         print("\n\t Automata Resultante:\n")
-        automata.print_Automata()
-        # print("Estados: "+' , '.join(automata.Estados))
-        # print("Alfabeto: "+' , '.join(automata.Sigma))
-        # print("Inicial: "+automata.inicial)
-        # print("Alfabeto: "+' , '.join(automata.Finales))
-        # print("Tabla de transicion:")
-        # pprint.pprint(automata.delta)
+        automata.print_Automata() #Imprime la 5-tupla del automata resultante
     else: #Si la entrada no contiene 2 argumentos y el segundo no es un archivo .txt, no puede ejecutarse el programa e imprime un mensaje de error
         print("Error: Entrada incorrecta ")
         print("Ejemplo de entrada correcta: $ python afne.py automata.txt") # ejemplo de entrada correcta
